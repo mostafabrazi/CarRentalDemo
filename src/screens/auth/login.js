@@ -1,26 +1,55 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { Component } from 'react'
-import { Alert, Image, StyleSheet, Text, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Keyboard, StyleSheet, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native'
 import { connect } from 'react-redux';
 import CRSpinner from '../../components/CRSpinner';
-import {login, loggedIn} from '../../redux/actions';
-import Utils, { STYLES } from '../../utils';
+import CRSVGElement from '../../components/CRSVGElement';
+import CRText from '../../components/CRText';
+import { login, loggedIn } from '../../redux/actions';
+import Utils from '../../utils';
 
 const {
-    SPACING, INPUT_HEIGHT, APP_WHITE, APP_ORANGE_COLOR, APP_RED_COLOR_LIGHT, APP_RED_COLOR, APP_BLUE_COLOR, APP_GREEN_COLOR
+    SPACING, INPUT_HEIGHT, STYLES, svgLogo, APP_WHITE_COLOR, APP_DARK_TEXT_COLOR, APP_LIGHTER_DARK, APP_ORANGE_COLOR, APP_RED_COLOR_LIGHT, APP_RED_COLOR, APP_BLUE_COLOR, APP_GREEN_COLOR
 } = Utils;
 
 class LoginScreen extends Component {
 
     constructor(props) {
         super(props);
+
+        // States
         this.state = {
             email: '',
             password: '',
+            showLogo: true,
         };
     }
 
+    // Lifecycle methods
+    componentDidMount () {
+        this._mounted = true;
+        Keyboard.addListener('keyboardDidShow', () => {
+            if (this._mounted) {
+                this.setState({showLogo: false});
+            }
+        });
+        Keyboard.addListener('keyboardDidHide', () => {
+            if (this._mounted) {
+                this.setState({showLogo: true});
+            }
+        });
+    }
+    componentWillUnmount() {
+        this._mounted = false;
+    }
+    componentDidUpdate(prevProps, _prevState) {
+        if (this.props.error && prevProps.error !== this.props.error) {
+            ToastAndroid.show(this.props.error, ToastAndroid.LONG);
+        }
+    }
+
+    // Actions
     onLogin() {
         const { username, password } = this.state;
         if (username && password) {
@@ -30,63 +59,55 @@ class LoginScreen extends Component {
         }
     }
 
-    componentDidUpdate(prevProps, _prevState) {
-        if (this.props.error && prevProps.error !== this.props.error) {
-            ToastAndroid.show(this.props.error, ToastAndroid.LONG);
-        }
-
-        // if (this.props.user && prevProps.user !== this.props.user) {
-        //     this.props.loggedIn();
-        // }
-    }
-
     render() {
-        const {loading, user, error, isLoggedIn} = this.props;
+        const { loading, user, error, isLoggedIn } = this.props;
+        const { showLogo } = this.state;
         if (loading) {
             return <CRSpinner />;
         }
 
         return (
-            <View style={{ flex: 1, justifyContent:'center', padding: SPACING, paddingBottom: 70, paddingTop: SPACING, backgroundColor: APP_WHITE }}>
-                <StatusBar style="dark" backgroundColor={APP_WHITE} />
+            <View style={styles.container}>
+                <StatusBar style="dark" backgroundColor={APP_WHITE_COLOR} />
 
-                <Image source={require('../../assets/logo.png')} style={{ alignSelf: 'center', width: 170, height: 170, marginBottom: SPACING }} />
+                {/* Logo */}
+                {showLogo ? <CRSVGElement content={svgLogo} width={120} style={{borderRadius: SPACING, marginBottom: 2 * SPACING}} /> : null}
+
+                {/* Hellow text */}
+                <CRText bolder big dark>Bonjour!</CRText>
+                <CRText dark medium style={{ marginBottom: 2 * SPACING }}>Connectez vous maintenant!</CRText>
+
+                {/* Username & password inputs */}
                 <TextInput
                     value={this.state.username}
                     onChangeText={(username) => this.setState({ username })}
                     placeholder='Username ...'
-                    placeholderTextColor={APP_RED_COLOR_LIGHT}
-                    style={styles.input}
+                    placeholderTextColor={'rgba(0,0,0,0.3)'}
+                    style={STYLES.input}
                 />
                 <TextInput
                     value={this.state.password}
                     onChangeText={(password) => this.setState({ password })}
                     placeholder={'Mot de passe ...'}
                     secureTextEntry={true}
-                    placeholderTextColor={APP_RED_COLOR_LIGHT}
-                    style={styles.input}
+                    placeholderTextColor={'rgba(0,0,0,0.3)'}
+                    style={STYLES.input}
                 />
 
-                {/* {error ? <TouchableOpacity
-                        disabled
-                        style={{alignItems: 'center'}}
-                        onPress={null}>
-                        <Text style={{color: 'red'}}> {error} </Text>
-                    </TouchableOpacity> : null} */}
-
-                <LinearGradient colors={[ APP_RED_COLOR, APP_BLUE_COLOR]} style={styles.button_container}>
+                {/* Login button */}
+                <LinearGradient
+                    colors={[APP_RED_COLOR, APP_BLUE_COLOR]}
+                    start={{ x: 0, y: 1 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.button_container}
+                >
                     <TouchableOpacity
                         style={styles.button}
                         onPress={this.onLogin.bind(this)}>
-                        <Text style={styles.buttonText}> Se Connecter </Text>
+                        <CRText light bold> Se Connecter </CRText>
                     </TouchableOpacity>
                 </LinearGradient>
 
-                {/* <TouchableOpacity
-                        style={{alignItems: 'center'}}
-                        onPress={null}>
-                        <Text style={{color: 'rgba(0,0,0,0.4)'}}> Mot de passe Oublié? </Text>
-                    </TouchableOpacity> */}
 
             </View>
         );
@@ -102,9 +123,16 @@ const mapStateToProps = (state) => {
     };
 };
 
-export default connect(mapStateToProps, {login, loggedIn})(LoginScreen);
+export default connect(mapStateToProps, { login, loggedIn })(LoginScreen);
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 2 * SPACING,
+        paddingBottom: 100,
+        justifyContent: 'center',
+        backgroundColor: APP_WHITE_COLOR
+    },
     titleText: {
         fontSize: 50,
         alignItems: 'center',
@@ -120,17 +148,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        color: APP_WHITE,
+        color: APP_WHITE_COLOR,
     },
-    button_container: {alignSelf: 'center', width: '60%', borderRadius: SPACING * 2, marginVertical: SPACING},
-    input: {
-        width: '100%',
-        height: INPUT_HEIGHT,
-        padding: SPACING,
-        borderWidth: 2,
-        color: APP_RED_COLOR,
-        borderColor: APP_RED_COLOR,
-        borderRadius: SPACING * 2,
-        marginVertical: SPACING / 3,
-    },
+    button_container: { alignSelf: 'center', width: '60%', borderRadius: SPACING, marginVertical: SPACING },
 });

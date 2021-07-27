@@ -8,8 +8,6 @@ export const login = (username, password) => {
         const params = { username, password };
         await AuthService.login(params)
             .then((response) => {
-                console.log('login response: ', response);
-
                 if (response && 'status' in response && response.status) {
                     if (typeof response.message === 'string') {
                         dispatch({
@@ -20,14 +18,11 @@ export const login = (username, password) => {
                         return;
                     }
                     AsyncStorage.setItem('SESSION', JSON.stringify(response.message)).then((_value) => {
-                        dispatch({ type: 'LOGGED_IN' });
                         dispatch({
                             type: 'LOGIN_SUCCESS',
                             user: response.message,
                             error: null,
                         });
-                        console.log('ppppppp');
-
                     });
                     return;
                 }
@@ -47,6 +42,20 @@ export const login = (username, password) => {
     };
 };
 
+// Destroy session -> update state with LOGGED_OUT to trigger redirect to login screen later
+export const logout = () => {
+    return async (dispatch) => {
+        dispatch({ type: 'START_LOADING' });
+        AsyncStorage.removeItem('SESSION').then((value) => {
+            // TODO: TO BE REMOVED (Just to simulate spiner)
+            setTimeout(() => {
+                dispatch({ type: 'LOGGED_OUT' });
+            }, 1000);
+        });
+    };
+};
+
+// Check if user logged in already 
 export const loggedIn = () => {
     return async (dispatch) => {
         dispatch({ type: 'START_LOADING' });

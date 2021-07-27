@@ -1,12 +1,12 @@
 import React, { Component } from 'react'
 import { Text, View } from 'react-native'
-import CRText from '../../components/CRText'
 
-export default class CarScreen extends Component {
+export default class RentCarScreen extends Component {
     render() {
+        const {brand, model, price, photo, seats} = this.props.route.params;
         return (
             <View>
-                <CRText> CarScreen </CRText>
+                <Text> {brand} </Text>
             </View>
         )
     }

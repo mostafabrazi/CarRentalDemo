@@ -30,10 +30,8 @@ export default (state = INITIAL_STATE, action) => {
         case 'LOGIN_FAILED':
         case 'NOT_LOGGED_IN':
             return { ...state, error: action.error, loading: false };
-        case 'LOGOUT_SUCCESS':
+        case 'LOGGED_OUT':
             return INITIAL_STATE;
-        case 'LOGOUT_FAILED':
-            return { ...state, error: action.error, loading: false };
         default:
             return state;
     }
