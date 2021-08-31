@@ -10,7 +10,13 @@ import { login, loggedIn } from '../../redux/actions';
 import Utils from '../../utils';
 
 const {
-    SPACING, INPUT_HEIGHT, STYLES, svgLogo, APP_WHITE_COLOR, APP_DARK_TEXT_COLOR, APP_LIGHTER_DARK, APP_ORANGE_COLOR, APP_RED_COLOR_LIGHT, APP_RED_COLOR, APP_BLUE_COLOR, APP_GREEN_COLOR
+    SPACING, 
+    INPUT_HEIGHT, 
+    STYLES, 
+    svgLogo, 
+    APP_WHITE_COLOR, 
+    APP_RED_COLOR, 
+    APP_BLUE_COLOR
 } = Utils;
 
 class LoginScreen extends Component {
@@ -75,7 +81,7 @@ class LoginScreen extends Component {
 
                 {/* Hellow text */}
                 <CRText bolder big dark>Bonjour!</CRText>
-                <CRText dark medium style={{ marginBottom: 2 * SPACING }}>Connectez vous maintenant!</CRText>
+                <CRText dark medium thin style={{ marginBottom: 2 * SPACING }}>Connectez vous maintenant</CRText>
 
                 {/* Username & password inputs */}
                 <TextInput

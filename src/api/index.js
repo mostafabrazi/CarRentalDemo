@@ -4,9 +4,11 @@
  * ###################################################
  */
 import axios from 'axios';
+const LOCAL = false;
 
 // BASE URL of the API
-export const BASE_URL = 'https://demoyouschool.000webhostapp.com/';
+export const BASE_URL = LOCAL ? 'http://192.168.1.200:8888/CarRentalAPIDemo/' : 'https://carrentalyouschool.000webhostapp.com/';
+
 // Axios config
 export const config = {
   timeout: 30000,

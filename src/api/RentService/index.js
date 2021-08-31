@@ -2,20 +2,20 @@ import axiosInstance from "..";
 const qs = require('qs');
 
 // Paths (to be concatenated to BASE_URL)
-const LOGIN_PATH = "auth/login/";
-const PROFILE_PATH = "auth/profile/";
+const RENTS_LIST_PATH = "rents/";
+const CRUD_RENT_PATH = "rents/CRUD/";
 
 // Authentication API calls
-export class AuthService {
-    static login = (params) => {
+export class RentService {
+    static getRents = (params) => {
       return axiosInstance
-        .post(LOGIN_PATH, qs.stringify(params))
+        .post(RENTS_LIST_PATH, qs.stringify(params))
         .then((response) => response.data);
     };
 
-    static editProfile = (params) => {
+    static crudRent = (params) => {
       return axiosInstance
-        .post(PROFILE_PATH, qs.stringify(params))
+        .post(CRUD_RENT_PATH, qs.stringify(params))
         .then((response) => response.data);
     };
 }

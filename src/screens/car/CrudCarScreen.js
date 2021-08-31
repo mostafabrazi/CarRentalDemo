@@ -7,7 +7,7 @@ import CRRadio from '../../components/CRRadio';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { connect } from 'react-redux';
-import { addCar, getCars } from '../../redux/actions';
+import { addCar, getCars, clearState } from '../../redux/actions';
 import CRSpinner from "../../components/CRSpinner";
 
 const { STYLES, brands, APP_LIGHTER_DARK, INPUT_HEIGHT, APP_LIGHT_DARK, APP_ORANGE_COLOR, APP_BLUE_COLOR, APP_GREEN_COLOR, APP_RED_COLOR, APP_WHITE_COLOR, SPACING } = Utils;
@@ -54,13 +54,17 @@ class CrudCarScreen extends Component {
                 color: APP_RED_COLOR,
             },
             headerStyle: STYLES.header_style,
-            headerRight: () => (
-                <TouchableOpacity
-                    onPress={() => this.deleteCar(this.props.route.params.id)}
-                    style={styles.delete_icon}>
-                    <AntDesign name="delete" size={22} color={'red'} />
-                </TouchableOpacity>
-            ),
+            headerRight: () => {
+                if (CRUD === 'U') {
+                    return (
+                        <TouchableOpacity
+                            onPress={() => this.deleteCar(this.props.route.params.id)}
+                            style={styles.delete_icon}>
+                            <AntDesign name="delete" size={22} color={'red'} />
+                        </TouchableOpacity>
+                    );
+                }
+            }
         });
 
         // Imagepicker
@@ -82,10 +86,15 @@ class CrudCarScreen extends Component {
         }
 
         if (this.props.crud && prevProps.crud !== this.props.crud) {
+            this.props.clearState();
             // Call get cars to reload cars list
             this.props.getCars(0);
             // go back to home
             this.props.navigation.goBack();
+        }
+
+        if (this.props.error && prevProps.error !== this.props.error) {
+            ToastAndroid.show(error, ToastAndroid.LONG);
         }
     }
 
@@ -108,7 +117,6 @@ class CrudCarScreen extends Component {
             }
             if (step === 3) {
                 // Save action
-                console.log('id: ', id);
                 this.props.addCar(id, brand, model, price, auto, photo, max_speed, pickup_position, fuel, seats, cyl_num, CRUD);
                 return;
             }
@@ -286,7 +294,7 @@ class CrudCarScreen extends Component {
                             </View>
 
                             {/* Price */}
-                            <CRText bold medium dark>Prix de voiture (€)</CRText>
+                            <CRText bold medium dark>Prix de location (€)</CRText>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TextInput
                                     value={price}
@@ -359,9 +367,10 @@ const mapStateToProps = (state) => {
         loading: state.carsReducer.loading,
 
         crud: state.carsReducer.crud,
+        error: state.carsReducer.error
     };
 };
-export default connect(mapStateToProps, { addCar, getCars })(CrudCarScreen);
+export default connect(mapStateToProps, { addCar, getCars, clearState })(CrudCarScreen);
 
 const styles = StyleSheet.create({
     button: {

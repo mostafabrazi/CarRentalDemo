@@ -1,6 +1,7 @@
 const INITIAL_STATE = {
     isLoggedIn: false,
     loading: false,
+    updated: false,
     user: null,
     error: null,
 };
@@ -9,6 +10,7 @@ export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
         case 'CLEAN_RESPONSE':
             return { ...state, error: null };
+        case 'EDIT_PROFILE_START_LOADING':
         case 'START_LOADING':
             return { ...state, loading: true };
         case 'END_LOADING':
@@ -17,6 +19,7 @@ export default (state = INITIAL_STATE, action) => {
             return {
                 ...state,
                 loading: false,
+                user: action.user,
                 isLoggedIn: true,
             };
         case 'LOGIN_SUCCESS':
@@ -27,6 +30,14 @@ export default (state = INITIAL_STATE, action) => {
                 loading: false,
                 isLoggedIn: true,
             };
+
+        case 'EDIT_PROFILE_SUCCESS':
+            return {
+                ...state,
+                loading: false,
+                updated: action.updated,
+            };
+        case 'EDIT_PROFILE_FAILED':
         case 'LOGIN_FAILED':
         case 'NOT_LOGGED_IN':
             return { ...state, error: action.error, loading: false };

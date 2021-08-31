@@ -10,9 +10,10 @@ export default class Utils {
   static APP_ORANGE_COLOR = '#ffb808';
   static APP_WHITE_COLOR = '#FFF';
   static APP_DARK_TEXT_COLOR = 'rgba(0,0,0,0.8)';
+  static APP_DARK_TEXT_COLOR_2 = 'rgba(0,0,0,0.35)';
   static APP_LIGHT_TEXT_COLOR = 'rgba(255,255,255,1)';
-  static APP_LIGHT_DARK = 'rgba(0,0,0,0.1)';
-  static APP_LIGHTER_DARK = 'rgba(0,0,0,0.04)';
+  static APP_LIGHT_DARK = '#FCFCFC';
+  static APP_LIGHTER_DARK = '#F5F5F5';
 
   // Numbers
   static STATUS_BAR_PADDING_TOP_INGHERIT = Platform.OS === "android" ? StatusBar.currentHeight : 0;
@@ -63,7 +64,7 @@ export default class Utils {
       marginVertical: this.SPACING / 2,
     },
     tag: {
-      backgroundColor: this.APP_LIGHTER_DARK,
+      backgroundColor: 'rgba(0,0,0,0.05)',
       borderRadius: this.SPACING,
       height: 1.5 * this.SPACING,
       padding: this.SPACING,

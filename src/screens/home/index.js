@@ -1,23 +1,33 @@
 import React, { Component } from "react";
-import { Text, FlatList, ToastAndroid, View, StyleSheet, TouchableOpacity, Image, StatusBar, Dimensions, ImageBackground } from "react-native";
+import { FlatList, ToastAndroid, View, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ImageBackground } from "react-native";
 import { connect } from "react-redux";
 import CRSpinner from "../../components/CRSpinner";
 import Utils from '../../utils';
-import { getCars, logout } from '../../redux/actions';
+import { getCars, logout, getRents, getCarsAPI } from '../../redux/actions';
 import { LinearGradient } from "expo-linear-gradient";
-import { Entypo, AntDesign } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CRText from "../../components/CRText";
-import MaskedView from "@react-native-community/masked-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as firebase from 'firebase';
+import CRGradientText from "../../components/CRGradientText";
 
 const {
-    STYLES, SPACING, brands, INPUT_HEIGHT, APP_WHITE_COLOR, APP_DARK_TEXT_COLOR, APP_LIGHTER_DARK, APP_LIGHT_DARK, APP_ORANGE_COLOR, APP_RED_COLOR_LIGHT, APP_RED_COLOR, APP_BLUE_COLOR, APP_GREEN_COLOR
+    STYLES,
+    SPACING,
+    INPUT_HEIGHT,
+    APP_WHITE_COLOR,
+    APP_LIGHTER_DARK,
+    APP_LIGHT_DARK,
+    APP_ORANGE_COLOR,
+    APP_RED_COLOR,
+    APP_BLUE_COLOR,
+    APP_GREEN_COLOR
 } = Utils;
 
 class HomeScreen extends Component {
     constructor(props) {
         super(props);
+
+        this.onEndReachedCalledDuringMomentum = true;
 
         // States
         this.state = {
@@ -26,6 +36,9 @@ class HomeScreen extends Component {
             isAdmin: this.props.session && this.props.session.role === 'admin',
             loading: true,
             isFetching: false,
+            showMenu: false,
+            cars: this.props.cars ? this.props.cars : null,
+            fetchMore: false,
         };
     }
 
@@ -46,7 +59,7 @@ class HomeScreen extends Component {
         }
 
         if (this.props.cars && prevProps.cars !== this.props.cars) {
-            this.setState({isFetching:false});
+            this.setState({ cars: this.props.cars, isFetching: false });
         }
     }
 
@@ -61,20 +74,33 @@ class HomeScreen extends Component {
     };
 
     // Item of the flatlist  
+    fetchMoreCars = () => {
+        if(!this.onEndReachedCalledDuringMomentum){
+            this.setState({ fetchMore: true, page: this.state.page + 5 },
+                async () => {
+                    const response = await getCarsAPI(this.state.page, this.props.session);
+                    if (response && 'cars' in response) {
+                        this.setState({ cars: [...this.state.cars, ...response.cars] });
+                    }
+                    this.setState({fetchMore: false});
+                });
+            this.onEndReachedCalledDuringMomentum = true;
+        }
+    };
     renderItem = ({ item, index }) => {
         return (
             <View style={{ padding: SPACING }}>
                 <LinearGradient colors={['white', 'white']} style={styles.card}>
                     {/* 
                          * 
-                         * Best practices for images loading
+                         * Best practices for images loading in PRODUCTION 
                          * - use small images
                          * - use png instead of jpeg
                          * - convert all to WEBP since it improves loading speed by 28%
                          * - cache images and get them from cache if already loaded 
                          *  (use cache flag of Iamge compnent for iOS <Image source={{uri:...., cache: 'ios-only' }} /> )
                     */}
-                    <ImageBackground source={{uri: item.photoUrl}} resizeMode="cover" style={styles.image}>
+                    <ImageBackground source={{ uri: item.photoUrl }} resizeMode="cover" style={styles.image}>
                         <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'space-between' }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: SPACING }}>
                                 <CRText bolder dark big>{item.brand}</CRText>
@@ -84,13 +110,13 @@ class HomeScreen extends Component {
                                 <CRText dark style={{ padding: SPACING }}><CRText dark bold>€ {item.price}</CRText> <CRText dark small thin>/jour</CRText></CRText>
 
                                 <LinearGradient
-                                    colors={[APP_BLUE_COLOR, APP_GREEN_COLOR]}
+                                    colors={item.irentit > 0 && !this.state.isAdmin ? [APP_ORANGE_COLOR, APP_RED_COLOR] : [APP_BLUE_COLOR, APP_GREEN_COLOR]} // change back color in case it's already rent
                                     start={{ x: 0, y: 1 }}
                                     end={{ x: 1, y: 1 }}
-                                    style={{ padding: 0, margin: 0, justifyContent: 'center', alignItems: 'center', borderTopStartRadius: 1.5 * SPACING, paddingHorizontal: 1.5 * SPACING, overflow: 'hidden' }}
-                                ><TouchableOpacity onPress={this.state.isAdmin ? () => this.editCar(item) : () => this.rentCar(item)}>
+                                    style={{ padding: 0, margin: 0, alignItems: 'center', borderTopStartRadius: 1.5 * SPACING, overflow: 'hidden' }}
+                                ><TouchableOpacity style={{ flex: 1, paddingHorizontal: 1.5 * SPACING, justifyContent: 'center', alignItems: 'center' }} onPress={this.state.isAdmin ? () => this.editCar(item) : () => this.rentCar(item)}>
 
-                                        <CRText medium light bold>{this.state.isAdmin ? 'Modifier' : 'Louer'}</CRText>
+                                        <CRText medium light bold>{this.state.isAdmin ? 'Modifier' : item.irentit > 0 ? 'En Attente' : 'Louer'}</CRText>
 
                                     </TouchableOpacity></LinearGradient>
 
@@ -106,8 +132,8 @@ class HomeScreen extends Component {
     };
 
     render() {
-        const { loading, loading_user, error, cars } = this.props;
-        const { loading: loading_state } = this.state;
+        const { loading, loading_user, error, brands } = this.props;
+        const { loading: loading_state, showMenu, cars, fetchMore } = this.state;
         const { isAdmin, isFetching } = this.state;
         if ((!isFetching && loading) || loading_user || loading_state) {
             return <CRSpinner />;
@@ -116,120 +142,154 @@ class HomeScreen extends Component {
         return (
             <View style={{ flex: 1, backgroundColor: APP_WHITE_COLOR }}>
                 <StatusBar backgroundColor={APP_LIGHTER_DARK} />
-                <View style={{ width: '100%', backgroundColor: APP_LIGHTER_DARK, height: isAdmin ? '10%' : '40%' }}></View>
+                <View style={{ width: '100%', backgroundColor: APP_LIGHTER_DARK, height: isAdmin ? '9%' : '40%' }}></View>
                 <View style={{ flex: 1, backgroundColor: 'transparent', padding: 1.5 * SPACING, position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
 
                     {/* Top bar */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', margin: isAdmin ? 0 : SPACING }}>
                         {/* Left side top bar */}
                         <TouchableOpacity disabled>
+                            {/* TODO: clean the code here */}
                             {/* <MaterialCommunityIcons name="arrow-left" size={ICON_SIZE} color="black" /> */}
                             {/* <Image source={require('../../assets/img/logo-horiz.png')} style={{ alignSelf: 'flex-start', width: 150, height: 46 }} /> */}
+
+                            {/* Open rents (les locations des clients) */}
+                            <TouchableOpacity style={[STYLES.icon_button, { marginRight: SPACING }]} onPress={() => this.props.navigation.navigate('RENTED')}>
+                                {/* Show red count only in case there is rents in 'waiting' status means new rents */}
+                                {this.props.rents_count ? <CRText bold style={{ fontSize: 8, position: 'absolute', textAlignVertical: 'center', left: 0, top: 1, textAlign: 'center', zIndex: 999, backgroundColor: 'red', width: SPACING, height: SPACING, borderRadius: SPACING / 2 }}>
+                                    {this.props.rents_count}
+                                </CRText> : null}
+                                <AntDesign name="bells" size={25} color={APP_ORANGE_COLOR} />
+                            </TouchableOpacity>
+
                         </TouchableOpacity>
 
                         {/* Right side top bar */}
-                        {
-                            !isAdmin ?
-                                <View style={{ flexDirection: 'row' }}>
-                                    {/* Search */}
-                                    <TouchableOpacity style={{ ...STYLES.icon_button, marginHorizontal: SPACING / 1.5 }}>
-                                        <AntDesign name="search1" size={24} color={APP_BLUE_COLOR} />
-                                    </TouchableOpacity>
-                                    {/* Logout */}
-                                    <TouchableOpacity style={STYLES.icon_button} onPress={this.props.logout}>
-                                        <AntDesign name="logout" size={24} color={APP_GREEN_COLOR} />
-                                    </TouchableOpacity>
-                                </View>
+                        <View style={{ flexDirection: 'row' }}>
+
+                            {showMenu ? <>
+                                {/* profile */}
+                                <TouchableOpacity style={[STYLES.icon_button, { marginRight: SPACING }]} onPress={() => this.props.navigation.navigate('PROFILE')}>
+                                    <AntDesign name="user" size={25} color={APP_RED_COLOR} />
+                                </TouchableOpacity>
+
+                                {/* Filter */}
+                                <TouchableOpacity style={[STYLES.icon_button, { marginRight: SPACING }]} onPress={() => this.props.navigation.navigate('FILTER')}>
+                                    <AntDesign name="filter" size={25} color={APP_BLUE_COLOR} />
+                                </TouchableOpacity>
+
+                                {/* Logout */}
+                                {
+                                    !isAdmin ?
+                                        <TouchableOpacity style={STYLES.icon_button} onPress={this.props.logout}>
+                                            <AntDesign name="logout" size={24} color={APP_GREEN_COLOR} />
+                                        </TouchableOpacity>
+                                        : null}
+                            </>
                                 : null}
+                            {/* profile */}
+                            <TouchableOpacity
+                                style={[STYLES.icon_button, { marginLeft: SPACING, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: SPACING }]}
+                                onPress={() => this.setState({ showMenu: !showMenu })}>
+                                <MaterialCommunityIcons name="dots-vertical" size={27} color={'rgba(0,0,0,0.6)'} />
+                            </TouchableOpacity>
+                        </View>
+
                     </View>
 
                     {/* Text Intro */}
-                    {
-                        !isAdmin ?
-                            <MaskedView
-                                style={{ height: INPUT_HEIGHT, marginBottom: SPACING / 2, margin: SPACING }}
-                                maskElement={<CRText bold big style={{ fontWeight: "bold", fontSize: 25 }}>Quel est votre choix?</CRText>}
-                            >
-                                <LinearGradient
-                                    colors={[APP_ORANGE_COLOR, APP_RED_COLOR, APP_RED_COLOR, APP_BLUE_COLOR, APP_BLUE_COLOR, APP_BLUE_COLOR]}
-                                    start={{ x: 0, y: 1 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={{ flex: 1 }}
-                                />
-                            </MaskedView>
-                            : null}
+                    {!isAdmin ? <CRGradientText>Quel est votre choix?</CRGradientText> : null}
 
                     {/* Brands filter */}
-                    <View style={{ flexDirection: 'row', marginHorizontal: SPACING, marginBottom: SPACING, alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: isAdmin ? 2*SPACING : INPUT_HEIGHT, paddingHorizontal: SPACING }}>
                         {/* Brands Categories filter */}
-                        <FlatList
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            data={brands}
-                            keyExtractor={(item) => item}
-                            renderItem={({ item }) => {
-                                return (
-                                    <TouchableOpacity style={STYLES.tag}>
-                                        <CRText dark thin small>{item}</CRText>
-                                    </TouchableOpacity>
-                                );
-                            }}
-                        />
+                        {
+                            !isAdmin ?
+                                <FlatList
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    data={brands && brands.length > 0 ? brands : cars ? [...cars].splice(0,4) : [{brand:'Mercedess'}, {brand:'Ford'}, {brand:'Kia'}]}
+                                    keyExtractor={(item) => item.brand}
+                                    renderItem={({ item }) => {
+                                        return (
+                                            <TouchableOpacity disabled style={STYLES.tag}>
+                                                <CRText dark thin small>{item.brand}</CRText>
+                                            </TouchableOpacity>
+                                        );
+                                    }}
+                                /> : null
+                        }
+
                         {/* All Filter button */}
-                        <TouchableOpacity
-                            style={{ ...STYLES.icon_button, width: 3 * SPACING, height: 3 * SPACING, borderRadius: SPACING * 1.5, backgroundColor: APP_LIGHTER_DARK, padding: SPACING / 2, marginLeft: SPACING }}
-                            onPress={() => this.props.navigation.navigate('FILTER')}>
-                            <AntDesign name="filter" size={24} color={APP_DARK_TEXT_COLOR} />
-                        </TouchableOpacity>
+                        {/* <View style={{ flexDirection: 'row', marginBottom: SPACING/2 }}>
+                            
+                            {
+                                isAdmin ? <TouchableOpacity
+                                    style={{ ...STYLES.icon_button, width: 3 * SPACING, height: 3 * SPACING, borderRadius: SPACING * 1.5, marginBottom: SPACING / 2 }}
+                                    onPress={() => this.props.navigation.navigate('FILTER')}>
+                                    <AntDesign name="filter" size={25} color={APP_GREEN_COLOR} />
+                                </TouchableOpacity> : null
+                            }
+                        </View> */}
+
+
                     </View>
 
+                    {isAdmin ? <CRText dark style={{ fontSize: 22, margin: SPACING, marginTop: 0 }}>Gérer vos voitures</CRText> : null}
                     {/* Display List of cars for all roles: admin or client */}
-                    {cars ?
+                    {cars && cars.length > 0 ?
                         <FlatList
                             style={{ marginBottom: isAdmin ? INPUT_HEIGHT : 0 }}
                             showsHorizontalScrollIndicator={false}
                             showsVerticalScrollIndicator={false}
-                            data={cars ? cars : tmpCars}
+                            data={cars}
                             keyExtractor={(item) => item.id + ''}
                             renderItem={this.renderItem}
                             onRefresh={() => {
-                                this.setState({isFetching: true}, 
-                                    () => this.props.getCars(0));
+                                this.onEndReachedCalledDuringMomentum = true;
+                                this.setState({ isFetching: true, fetchMore: false },
+                                    () => {
+                                        this.props.getCars(0);
+                                        this.props.getRents(0);
+                                    });
                             }}
                             refreshing={isFetching}
+                            onEndReached={this.fetchMoreCars}
+                            onEndReachedThreshold={1}
+                            onMomentumScrollBegin={() => { this.onEndReachedCalledDuringMomentum = false; }}
+                            ListFooterComponent={fetchMore ? <CRSpinner small /> : null}
+                            ListFooterComponentStyle={{flex:1, justifyContent: 'flex-end'}}
                         />
-                        : null}
+                        : <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 60 }}>
+                            <AntDesign name="car" size={24} color={'rgba(0,0,0,0.15)'} />
+                            <CRText dark bold style={{ color: 'rgba(0,0,0,0.15)' }}>Aucune voiture disponible</CRText>
+                            <TouchableOpacity style={{ padding: SPACING }} onPress={() => this.props.getCars(0)}>
+                                <MaterialIcons name="refresh" size={28} color={APP_GREEN_COLOR} />
+                            </TouchableOpacity>
+                        </View>}
 
                     {/* ToolBar: For admin only */}
-
                     {isAdmin ? <View style={styles.toolbar}>
-                        {/* logout */}
-                        <LinearGradient
-                            colors={[APP_ORANGE_COLOR, APP_RED_COLOR]}
-                            start={{ x: 0, y: 1 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.toolbar_item}
-                        ><TouchableOpacity >
-                                <AntDesign name="search1" size={32} color={APP_WHITE_COLOR} />
-                            </TouchableOpacity></LinearGradient>
                         {/* add car */}
-                        <LinearGradient
-                            colors={[APP_RED_COLOR, APP_BLUE_COLOR]}
-                            start={{ x: 0, y: 1 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.toolbar_item}
-                        ><TouchableOpacity onPress={() => this.props.navigation.navigate('CRUD', { CRUD: 'C' })}>
+                        <TouchableOpacity onPress={() => this.props.navigation.navigate('CRUD', { CRUD: 'C' })}>
+                            <LinearGradient
+                                colors={[APP_RED_COLOR, APP_BLUE_COLOR]}
+                                start={{ x: 0, y: 1 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.toolbar_item}
+                            >
                                 <AntDesign name="plus" size={32} color={APP_WHITE_COLOR} />
-                            </TouchableOpacity></LinearGradient>
-                        {/* search */}
-                        <LinearGradient
-                            colors={[APP_BLUE_COLOR, APP_GREEN_COLOR]}
-                            start={{ x: 0, y: 1 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.toolbar_item}
-                        ><TouchableOpacity onPress={this.props.logout}>
+                            </LinearGradient></TouchableOpacity>
+                        {/* Logout */}
+                        <TouchableOpacity onPress={this.props.logout}>
+                            <LinearGradient
+                                colors={[APP_BLUE_COLOR, APP_GREEN_COLOR]}
+                                start={{ x: 0, y: 1 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.toolbar_item}
+                            >
                                 <AntDesign name="logout" size={32} color={APP_WHITE_COLOR} />
-                            </TouchableOpacity></LinearGradient>
+                            </LinearGradient></TouchableOpacity>
                     </View> : null}
                 </View>
 
@@ -248,9 +308,14 @@ const mapStateToProps = (state) => {
         cars: state.carsReducer.cars,
         error: state.carsReducer.error,
 
+        // Access rents
+        rents: state.rentsReducer.rents,
+        rents_count: state.carsReducer.rents_count,
+        brands: state.carsReducer.brands,
+
     };
 };
-export default connect(mapStateToProps, { getCars, logout })(HomeScreen);
+export default connect(mapStateToProps, { getCars, logout, getRents })(HomeScreen);
 
 const styles = StyleSheet.create({
     card: {

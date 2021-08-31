@@ -11,7 +11,7 @@ export default class CRRadio extends Component {
     render() {
         return (
             <FlatList
-                style={{height: 2 * Utils.SPACING, flexGrow: 0, marginBottom: Utils.SPACING}}
+                style={{height: 2 * Utils.SPACING, flexGrow: 0, marginBottom: Utils.SPACING, ...this.props.style}}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 data={this.props.options}

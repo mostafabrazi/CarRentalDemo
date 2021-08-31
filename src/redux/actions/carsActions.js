@@ -2,29 +2,47 @@ import moment from "moment";
 import { CarService } from "../../api/CarService";
 import * as firebase from 'firebase';
 import Utils from "../../utils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const getCars = (offset) => {
+const LIMIT = 5; // PAGE count to be changed from here
+
+export const clearState = () => {
     return async (dispatch) => {
-        dispatch({ type: 'START_LOADING_CARS' });
-        const limit = 5;
-        const params = { limit, offset };
-        const response = await CarService.getCars(params);
-        console.log('gg');
-        if (typeof response !== 'string') {
-            if (response && typeof response.message !== 'string') {
-                const cars = response.message;
-                var carsResponse = [];
-                for (var i = 0; i < cars.length; i++) {
-                    const item = cars[i];
-                    const photoName = item.photo;
-                    const photoUrl = await firebase.storage().ref().child("images/" + photoName).getDownloadURL();
-                    carsResponse.push({ ...item, photoUrl });
-                }
-                dispatch({ type: 'CARS_LIST_SUCCESS', cars: carsResponse });
-                return;
+        dispatch({ type: 'CLEAR' });
+    };
+};
+
+// !!! Made this func generic to use it in getCars func here and in infinite scroll (fetch more in cars list) !!!
+export const getCarsAPI = async (offset, user, filter = {}) => {
+    const {id, role} = user;
+    const params = { limit: LIMIT, offset, ...filter, user_id: id, role };
+    const response = await CarService.getCars(params);
+    if (typeof response !== 'string') {
+        if (response && typeof response.message !== 'string' && response.message.cars) {
+
+            const { rents_count, brands, cars} = response.message;
+            var carsResponse = [];
+            for (var i = 0; i < cars.length; i++) {
+                const item = cars[i];
+                const photoName = item.photo;
+                const photoUrl = await firebase.storage().ref().child("images/" + photoName).getDownloadURL();
+                carsResponse.push({ ...item, photoUrl });
             }
+            return { type: 'CARS_LIST_SUCCESS', cars: carsResponse, rents_count, brands };
         }
-        dispatch({ type: 'CARS_LIST_FAILED', error: response.message });
+    }
+    return { type: 'CARS_LIST_FAILED', error: response.message };
+};
+
+export const getCars = (offset, filter = {}) => {
+    return async (dispatch, getState) => {
+        dispatch({ type: 'START_LOADING_CARS' });
+        var user = getState().authReducer.user;
+        if (!user) {
+            user = JSON.parse(await AsyncStorage.getItem('SESSION'));
+        }
+        const response = await getCarsAPI(offset, user, filter);
+        dispatch(response);
     };
 };
 
@@ -35,7 +53,6 @@ export const addCar = (id, brand, model, price, auto, photo, max_speed, pickup_p
         const saveToServer = (params) => {
             CarService.crudCar(params)
                 .then((response) => {
-                    console.log('reponse: ', response);
                     if (response && 'status' in response && response.status && response.message) {
                         dispatch({ type: 'ADD_CAR_SUCCESS' });
                         return;
@@ -53,8 +70,11 @@ export const addCar = (id, brand, model, price, auto, photo, max_speed, pickup_p
 
         // Check if image not changed while "edit" ACTION
         if (photo.indexOf('file') !== -1) {
+            /* 
+                TODO: - clean the code here
+                      - Make a Singleton of FIREBASE actions in Utils
+            */
             // Upload photo to FireBase
-            console.log('photo: ', photo);
             const respoPhoto = await fetch(photo);
             var blob = await respoPhoto.blob();
             const imageExtension = Utils.getFileNameFromPath(photo).split('.')[1];
@@ -62,11 +82,8 @@ export const addCar = (id, brand, model, price, auto, photo, max_speed, pickup_p
             firebase.storage().ref().child("images/" + imageName).put(blob).then((res) => {
                 // Now photo uploaded then -> save data to server
                 // Save data to SERVER
-                saveToServer({...params, photo: photoName});
+                saveToServer({...params, photo: imageName});
 
-            }).catch((err) => {
-                console.log('errPhoto: ', JSON.stringify(err));
-                dispatch({ type: 'ADD_CAR_FAILED' });
             });
         } else {
             saveToServer({...params, photo});

@@ -13,7 +13,7 @@ export default class CRText extends Component {
            <Text 
             style={{
                 fontFamily: bolder ? 'roboto-black' : bold ? 'roboto-bold' : thin ? 'roboto-light' : 'roboto-regular',
-                fontSize: big ? 19 : medium ? 17 : small ? 13 : 16, 
+                fontSize: big ? 18 : medium ? 16 : small ? 13 : 15, 
                 color: dark ? APP_DARK_TEXT_COLOR : APP_LIGHT_TEXT_COLOR, 
                 alignItems: "center", 
                 justifyContent: "center", 

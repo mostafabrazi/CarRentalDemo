@@ -9,9 +9,10 @@ const {
 
 export default class CRSpinner extends Component {
     render() {
+        const {small} = this.props;
         return (
-            <View style={{flex: 1, backgroundColor: APP_WHITE_COLOR, alignItems: 'center', justifyContent: 'center', paddingTop: STATUS_BAR_PADDING_TOP_INGHERIT}}>
-                <Wave size={50} color={APP_RED_COLOR} />
+            <View style={{flex: 1, backgroundColor: APP_WHITE_COLOR, alignItems: 'center', justifyContent: 'center', paddingTop: small ? 0 : STATUS_BAR_PADDING_TOP_INGHERIT, marginBottom: small?SPACING:0}}>
+                <Wave size={small ? 20 : 50} color={APP_RED_COLOR} />
             </View>
         )
     }

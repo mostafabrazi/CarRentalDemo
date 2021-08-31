@@ -42,6 +42,35 @@ export const login = (username, password) => {
     };
 };
 
+export const editProfile = (id, first_name, last_name, username) => {
+    return async (dispatch, getState) => {
+        dispatch({ type: 'EDIT_PROFILE_START_LOADING' });
+
+        const params = { id, first_name, last_name, username };
+        await AuthService.editProfile(params)
+            .then((response) => {
+                if (response && 'status' in response && response.status) {
+                    const usr = { ...getState().authReducer.user, first_name, last_name, username };
+                    AsyncStorage.setItem('SESSION', JSON.stringify(usr)).then((_value) => {
+                        dispatch({ type: 'LOGGED_IN', user: usr });
+                        dispatch({
+                            type: 'EDIT_PROFILE_SUCCESS',
+                            updated: response.message,
+                            error: null,
+                        });
+                        return;
+                    });
+                }
+            })
+            .catch((_error) => {
+                dispatch({
+                    type: 'EDIT_PROFILE_FAILED',
+                    error: 'Erreur inconu',
+                });
+            });
+    };
+};
+
 // Destroy session -> update state with LOGGED_OUT to trigger redirect to login screen later
 export const logout = () => {
     return async (dispatch) => {
@@ -50,7 +79,7 @@ export const logout = () => {
             // TODO: TO BE REMOVED (Just to simulate spiner)
             setTimeout(() => {
                 dispatch({ type: 'LOGGED_OUT' });
-            }, 1000);
+            }, 250);
         });
     };
 };
@@ -63,7 +92,7 @@ export const loggedIn = () => {
             if (_value) {
                 dispatch({ type: 'LOGGED_IN', user: JSON.parse(_value) });
             } else {
-                dispatch({ type: 'NOT_LOGGED_IN', error: 'Session introuvable' });
+                dispatch({ type: 'NOT_LOGGED_IN', error: '' });
             }
         });
     };

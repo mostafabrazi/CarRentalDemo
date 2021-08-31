@@ -2,6 +2,7 @@
   "expo": {
     "name": "CarRentalDemo",
     "slug": "CarRentalDemo",
+    "description": "1- On your device (mobile) go to Google play and install expo<br/>2- Run the expo app on your device<br/>3- Click Scan QR Code button and scan the QR code below<br/>4- Voila 😉",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/img/icon.png",
@@ -17,9 +18,13 @@
       "**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.mostafabrazi.carrentaldemo",
+      "buildNumber": "1.0.0",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.mostafabrazi.carrentaldemo",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/img/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"

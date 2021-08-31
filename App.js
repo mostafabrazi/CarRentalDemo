@@ -7,12 +7,13 @@ import { Provider } from 'react-redux';
 import store from './src/redux/store';
 import Root from './src/screens/';
 import { enableScreens } from 'react-native-screens';
-enableScreens();
 import * as Font from 'expo-font';
 import CRSpinner from './src/components/CRSpinner';
 import Utils from './src/utils';
 import * as firebase from 'firebase';
 import { LogBox } from 'react-native';
+
+enableScreens();
 
 export default class App extends Component {
 
@@ -22,7 +23,7 @@ export default class App extends Component {
 
   async componentDidMount () {
     // Pre loading configuration
-    // Load font
+    // Loading font
     await Font.loadAsync({
       'roboto-regular': require('./src/assets/fonts/Roboto-Regular.ttf'),
       'roboto-black': require('./src/assets/fonts/Roboto-Black.ttf'),
@@ -34,6 +35,7 @@ export default class App extends Component {
     this.setState({ assetsLoaded: true });
 
     // FireBase setup
+    // I used firebase to upload images
     var firebaseConfig = {
       apiKey: "AIzaSyCiB5cFn5UOih58RE7-rlo6RvzLZG4Gfk8",
       authDomain: "carrentaldemo-faa91.firebaseapp.com",
@@ -43,6 +45,7 @@ export default class App extends Component {
       appId: "1:87809400501:web:9475e2bb65e84ef91da8fc",
       measurementId: "G-MKTTZ9CMVJ"
     };
+
     // Initialize Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
@@ -58,7 +61,7 @@ export default class App extends Component {
         <Provider store={store}>
           <NavigationContainer>
             <SafeAreaView style={Utils.STYLES.root_container}>
-              <StatusBar style="auto" />
+              <StatusBar backgroundColor={Utils.APP_LIGHTER_DARK} />
               {/* Root Component that groud all other components */}
               <Root />
             </SafeAreaView>
@@ -67,7 +70,7 @@ export default class App extends Component {
         </Provider>
       );
     } else {
-      return <CRSpinner />;
+      return <SafeAreaView style={Utils.STYLES.root_container}><CRSpinner /></SafeAreaView>;
     }
     
   }

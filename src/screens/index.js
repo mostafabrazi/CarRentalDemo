@@ -2,13 +2,15 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux';
 import AuthNavigatorStack from '../routes/AuthNavigator';
 import HomeNavigatorStack from '../routes/HomeNavigator';
-import {loggedIn} from '../redux/actions';
+import {loggedIn, getCars} from '../redux/actions';
 
 class Root extends Component {
     componentDidMount () {
         // To check if the user already is logged in
         // In case logged in we redirect him directly to Home screen ;)
         this.props.loggedIn();
+        // Get cars list once the screen is mounted
+        this.props.getCars(0);
     }
     render() {
         const { isLoggedIn } = this.props;
@@ -30,4 +32,4 @@ const mapStateToProps = (state) => {
         isLoggedIn: state.authReducer.isLoggedIn,
     };
 };
-export default connect(mapStateToProps, {loggedIn})(Root);
+export default connect(mapStateToProps, {loggedIn, getCars})(Root);
