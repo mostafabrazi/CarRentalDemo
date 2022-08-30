@@ -1,4 +1,4 @@
-### CarRentalDemo, Test technique YouSchool 
+### CarRentalDemo
 #### Comment tester l'application?
 ##### Installation locale avec expo
 1. Make sure you installed nodejs on your machine
